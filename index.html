@@ -1,210 +1,33 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Marine Tracker | Boat Monitor</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
-  <style>
-    :root {
-      --marine-gradient: linear-gradient(145deg, #0d3b66 0%, #107dac 40%, #63b7e3 100%);
-      --panel-bg: rgba(255, 255, 255, 0.15);
-      --text-light: #eaf6ff;
-      --accent: #4ee8dc;
-    }
-    body {
-      margin: 0;
-      font-family: "Poppins", sans-serif;
-      background: var(--marine-gradient);
-      background-attachment: fixed;
-      color: var(--text-light);
-      min-height: 100vh;
-      overflow-x: hidden;
-    }
-
-    /* Sign-in screen */
-    #login-screen {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      flex-direction: column;
-      height: 100vh;
-      text-align: center;
-      backdrop-filter: blur(8px);
-      background: rgba(0,75,125,0.3);
-      animation: fadein 0.6s;
-    }
-    #login-box {
-      background: var(--panel-bg);
-      padding: 40px;
-      border-radius: 18px;
-      box-shadow: 0 4px 30px rgba(0,0,0,0.3);
-      width: 320px;
-      backdrop-filter: blur(10px);
-    }
-    #login-box h1 {
-      margin-bottom: 20px;
-      font-size: 1.8em;
-      color: var(--accent);
-    }
-    #login-box input {
-      width: 100%;
-      margin-bottom: 16px;
-      padding: 12px 10px;
-      border: none;
-      border-radius: 6px;
-      background: rgba(255,255,255,0.85);
-      font-size: 1em;
-    }
-    #login-box button {
-      background: var(--accent);
-      border: none;
-      color: #04334c;
-      font-size: 1.1em;
-      padding: 10px 0;
-      border-radius: 6px;
-      width: 100%;
-      cursor: pointer;
-      transition: 0.2s;
-    }
-    #login-box button:hover {
-      background: #a5ffee;
-    }
-
-    /* Dashboard */
-    #dash {
-      display: none;
-      animation: fadein 0.7s;
-      padding: 20px;
-    }
-    header {
-      text-align: center;
-      padding: 20px 0 10px 0;
-      font-size: 2em;
-      letter-spacing: 1px;
-      color: #ffffffd9;
-      text-shadow: 0 1px 12px rgba(0,0,0,0.3);
-    }
-    .cards {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-      gap: 24px;
-      max-width: 1200px;
-      margin: 0 auto;
-    }
-    .card {
-      background: rgba(255,255,255,0.12);
-      border-radius: 14px;
-      padding: 24px;
-      box-shadow: 0 4px 18px rgba(0,0,0,0.3);
-      text-align: center;
-      backdrop-filter: blur(8px);
-      transition: all 0.25s;
-    }
-    .card:hover {
-      background: rgba(255,255,255,0.22);
-      transform: translateY(-5px);
-    }
-    .metric-title {
-      font-weight: 600;
-      margin-bottom: 10px;
-      letter-spacing: 0.5px;
-    }
-    .metric-value {
-      font-size: 2em;
-      color: var(--accent);
-    }
-    #map {
-      height: 350px;
-      width: 100%;
-      border-radius: 12px;
-      margin-top: 15px;
-    }
-    const WS_URL = "ws://localhost:8080";
-
-    @keyframes fadein { from {opacity: 0;} to {opacity:1;} }
-  </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SEAGUARD • Team NMCS 2K25</title>
+  <meta name="author" content="Team NMCS 2K25">
+  <link rel="stylesheet" href="style.css" />
+  <script defer src="app.js"></script>
 </head>
 <body>
+  <header>
+    <h1>🛥️ SEAGUARD Dashboard</h1>
+    <p>Intelligence on Deck, Safety on Waves</p>
+    <p class="team">Developed by <b>Team NMCS 2K25</b></p>
+  </header>
 
-  <!-- LOGIN -->
-  <section id="login-screen">
-    <div id="login-box">
-      <h1>Marine Tracker</h1>
-      <input type="text" id="user" placeholder="Username" />
-      <input type="password" id="pass" placeholder="Password" />
-      <button onclick="login()">Sign In</button>
-    </div>
+  <section id="status">
+    <h2>Boat Status</h2>
+    <div class="card"><b>Weight:</b> <span id="weight">0.0</span> kg</div>
+    <div class="card"><b>Capacity:</b> <span id="capacity">0.0</span> kg</div>
+    <div class="card"><b>Roll:</b> <span id="roll">0</span>°</div>
+    <div class="card"><b>Pitch:</b> <span id="pitch">0</span>°</div>
+    <div class="card"><b>Sea State:</b> <span id="sea">Calm</span></div>
+    <div class="card alarm"><b>ALARM:</b> <span id="alarm">OFF</span></div>
   </section>
 
-  <!-- DASHBOARD -->
-  <section id="dash">
-    <header>Boat Monitoring Panel</header>
-    <div class="cards">
-      <div class="card">
-        <div class="metric-title">Boat Weight</div>
-        <div class="metric-value" id="weight">2000 kg</div>
-      </div>
-      <div class="card">
-        <div class="metric-title">Wave Length</div>
-        <div class="metric-value" id="wave">--</div>
-      </div>
-      <div class="card">
-        <div class="metric-title">Pressure</div>
-        <div class="metric-value" id="pressure">--</div>
-      </div>
-      <div class="card" style="grid-column: span 2;">
-        <div class="metric-title">Live Location</div>
-        <div id="map"></div>
-      </div>
-    </div>
-  </section>
-
-  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
-  <script>
-    function login() {
-      let u = document.getElementById('user').value.trim();
-      let p = document.getElementById('pass').value.trim();
-      if (u && p) {
-        document.getElementById('login-screen').style.display='none';
-        document.getElementById('dash').style.display='block';
-        initDashboard();
-      } else {
-        alert('Please enter username and password.');
-      }
-    }
-
-    // Dashboard functions
-    function initDashboard() {
-      // Static weight
-      document.getElementById('weight').innerText = "2000 kg";
-
-      // Dynamic stats
-      function randomBetween(min,max,dec=1){
-        return (Math.random()*(max-min)+min).toFixed(dec);
-      }
-      function updateStats(){
-        document.getElementById('wave').innerText = randomBetween(0.5,6.5,2)+' m';
-        document.getElementById('pressure').innerText = randomBetween(970,1030,1)+' hPa';
-      }
-      setInterval(updateStats, 1200);
-      updateStats();
-
-      // Map
-      let lat=18.9, lon=72.8;
-      var map = L.map('map').setView([lat, lon], 7);
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: "&copy; OSM"
-      }).addTo(map);
-      var marker = L.marker([lat, lon]).addTo(map).bindPopup("Boat Position");
-      function moveBoat(){
-        lat+=parseFloat(randomBetween(-0.02,0.02,4));
-        lon+=parseFloat(randomBetween(-0.02,0.02,4));
-        marker.setLatLng([lat,lon]);
-        map.panTo([lat,lon]);
-      }
-      setInterval(moveBoat, 3500);
-    }
-  </script>
+  <footer>
+    <p>© 2025 Team NMCS 2K25 | SEAGUARD Project</p>
+  </footer>
 </body>
 </html>
+
